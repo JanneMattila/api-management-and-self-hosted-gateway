@@ -1,0 +1,84 @@
+# NOTE: Before deploying to a production environment, please review the documentation -> https://aka.ms/self-hosted-gateway-production
+apiVersion: v1
+kind: Secret
+metadata:
+  name: internalgw-token
+type: Opaque
+stringData:
+  value: "GatewayKey internalgw&202102121...your token here...kUMNV6HF/Q=="
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: internalgw-env
+data:
+  config.service.endpoint: "https://<your-instance>.management.azure-api.net/subscriptions/.../<your-instance>?api-version=2019-12-01"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: internalgw
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: internalgw
+  template:
+    metadata:
+      labels:
+        app: internalgw
+    spec:
+      terminationGracePeriodSeconds: 60
+      hostAliases:
+      - ip: "172.16.3.5"
+        hostnames:
+        - "<your-instance>.azure-api.net"
+        - "<your-instance>.management.azure-api.net"
+        - "<your-instance>.portal.azure-api.net"
+        - "<your-instance>.developer.azure-api.net"
+        - "<your-instance>.scm.azure-api.net"
+      containers:
+      - name: internalgw
+        image: mcr.microsoft.com/azure-api-management/gateway:latest
+        ports:
+        - name: http
+          containerPort: 8080
+        - name: https
+          containerPort: 8081
+        readinessProbe:
+          httpGet:
+            path: /internal-status-0123456789abcdef
+            port: http
+            scheme: HTTP
+          initialDelaySeconds: 0
+          periodSeconds: 5
+          failureThreshold: 3
+          successThreshold: 1
+        env:
+        - name: config.service.auth
+          valueFrom:
+            secretKeyRef:
+              name: internalgw-token
+              key: value
+        envFrom:
+        - configMapRef:
+            name: internalgw-env
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: internalgw
+spec:
+# These commented since here we just create simple NodePort service:
+#  type: LoadBalancer
+#  externalTrafficPolicy: Local
+  type: NodePort
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080
+  - name: https
+    port: 443
+    targetPort: 8081
+  selector:
+    app: internalgw

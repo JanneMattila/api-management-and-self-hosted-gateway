@@ -1,0 +1,19 @@
+### APIM inside VNET
+# For name resolution to work 
+# C:\Windows\System32\drivers\etc\hosts was updated with:
+# 172.16.3.5  <your-instance>.azure-api.net
+GET https://<your-instance>.azure-api.net/echo/resource?param1=sample HTTP/1.1
+Ocp-Apim-Subscription-Key: 4d1a6...<your subscription key>...8a483
+
+### APIM Self-hosted gateway
+# For name resolution to work 
+#      hostAliases:
+#      - ip: "172.16.3.5"
+#        hostnames:
+#        - "<your-instance>.management.azure-api.net"
+#        - "<your-instance>.azure-api.net"
+#        - "<your-instance>.portal.azure-api.net"
+#        - "<your-instance>.developer.azure-api.net"
+#        - "<your-instance>.scm.azure-api.net"
+GET https://localhost:31022/echo/resource?param1=sample HTTP/1.1
+Ocp-Apim-Subscription-Key: 4d1a6...<your subscription key>...8a483
